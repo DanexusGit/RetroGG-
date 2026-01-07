@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arcade Personalizado</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #00d2ff; --bg: #050505; }
+        body, html { margin: 0; padding: 0; background: var(--bg); color: white; font-family: 'Rajdhani', sans-serif; overflow-x: hidden; }
+        
+        #main-menu { padding: 40px 20px; }
+        header { text-align: center; margin-bottom: 40px; font-family: 'Orbitron'; }
+        
+        .container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .game-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: 0.3s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .game-card:hover { border-color: var(--primary); transform: scale(1.02); }
+
+        .game-card img { width: 100%; height: 220px; object-fit: cover; }
+
+        .info { padding: 12px; text-align: center; font-weight: bold; background: rgba(0,0,0,0.8); font-size: 0.9rem; }
+
+        #game-mode { display: none; flex-direction: column; width: 100vw; height: 100vh; background: #000; }
+        .top-bar { height: 50px; background: #111; display: flex; align-items: center; padding: 0 20px; border-bottom: 2px solid var(--primary); }
+        .back-btn { background: #ff4b2b; color: white; border: none; padding: 5px 15px; border-radius: 4px; cursor: pointer; font-family: 'Orbitron'; }
+        iframe { flex-grow: 1; border: none; }
+    </style>
+</head>
+<body>
+
+<div id="main-menu">
+    <header><h1>MY ARCADE</h1></header>
+    <div class="container" id="grid"></div>
+</div>
+
+<div id="game-mode">
+    <div class="top-bar">
+        <button class="back-btn" onclick="returnToMenu()">SAIR</button>
+        <span id="game-title-display" style="margin-left: auto; color: var(--primary); font-family: 'Orbitron'"></span>
+    </div>
+    <iframe id="game-view"></iframe>
+</div>
+
+<script>
+    const games = [
+        { name: "Super Mario World", base: "https://cdn.jsdelivr.net/gh/DanexusGit/Snes/", file: "Super Mario World (U) [!].smc", thumb: "https://i.postimg.cc/JtPWqMkb/images.jpg" },
+        { name: "FIFA Soccer '96", base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-FIFA%20Soccer%20'96%20(USA)%20(En,Fr,De,Es,It,Sv)/", file: "FIFA Soccer '96 (USA) (En,Fr,De,Es,It,Sv).SMC", thumb: "https://i.postimg.cc/mhF3sNYC/logo.gif" },
+        { name: "FIFA '97", base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-FIFA_97/", file: "FIFA_97.smc", thumb: "https://i.postimg.cc/WF198DCm/images-(7).jpg" },
+        { name: "FIFA '98", base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-FIFA_98/", file: "FIFA_98.SMC", thumb: "https://i.postimg.cc/062dRTnm/images-(8).jpg" },
+        { name: "Aero Fighters", base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-Aero%20Fighters%20(USA)%20(PT-BR)/", file: "Aero Fighters (USA) (PT-BR).sfc", thumb: "https://i.postimg.cc/TLBrbp65/images.jpg" },
+        { name: "Bugs Bunny", base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-Bugs%20Bunny/", file: "Bugs Bunny.smc", thumb: "https://i.postimg.cc/ygC1SHGR/images-(5).jpg" },
+        { name: "Aladdin", base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-Aladdin%20(USA)/", file: "Aladdin (USA).smc", thumb: "https://i.postimg.cc/68S5tRL0/images-(2).jpg" },
+        { name: "Alien 3", base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-Alien%203%20(USA)%20(PT-BR)/", file: "Alien 3 (USA) (PT-BR).smc", thumb: "https://i.postimg.cc/XG6jybzm/images-(3).jpg" },
+        { name: "Alien vs. Predator", base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-Alien%20vs/", file: "Alien vs. Predator (USA) (PT-BR).smc", thumb: "https://i.postimg.cc/mz3bYnxm/images-(4).jpg" },
+        { name: "Air Cavalry", base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-Air%20Cavalry/", file: "Air Cavalry.sfc", thumb: "https://i.postimg.cc/VJTLmMBL/images-(1).jpg" },
+        { name: "Contra 3", base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-Contra%203%20-%20The%20Alien%20Wars/", file: "Contra 3 - The Alien Wars.smc", thumb: "https://i.postimg.cc/tnbK9RM1/download.jpg" },
+        { name: "Donkey Kong Country 1", base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-Donkey%20Kong%20Country/", file: "Donkey Kong Country.smc", thumb: "https://i.postimg.cc/0rJjQVHR/donkey-kong-country-1-button-v1-1560099410346.jpg" },
+        { name: "Donkey Kong Country 2", base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-Donkey%20Kong%20Country%202/", file: "Donkey Kong Country 2.smc", thumb: "https://i.postimg.cc/mPTgmBZ9/download-(1).jpg" },
+        { name: "Donkey Kong Country 3", base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-Donkey%20Kong%20Country%203/", file: "Donkey Kong Country 3.smc", thumb: "https://i.postimg.cc/K3ZmJ5FW/images-(6).jpg" },
+        { name: "Final Fight 2", base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-Final%20Fight%202%20(BR)/", file: "Final Fight 2 (BR).smc", thumb: "https://i.postimg.cc/64s9nN1n/download-(2).jpg" },
+        { name: "Final Fight 3", base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-Final%20Fight%203/", file: "Final Fight 3.smc", thumb: "https://i.postimg.cc/8fPVhPmg/finalfight3-1646898523592.jpg" },
+        { name: "Jurassic Park 1", base: "", file: "Jurassic Park 1.smc", thumb: "https://i.postimg.cc/G4PspXtP/artworks-000153878158-kmh7bb-t500x500.jpg" },
+        { name: "F-Zero 1", base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-F-Zero%201/", file: "F-Zero 1.smc", thumb: "https://i.postimg.cc/N2rKv4Zv/can-we-say-that-f-zero-snes-has-one-of-the-best-pre-2000s-v0-806wsosq81se1.jpg" },
+        { name: "F-Zero 2 Grand Prix", base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-F-Zero%202%20-%20Grand%20Prix/", file: "F-Zero 2 - Grand Prix.smc", thumb: "https://i.postimg.cc/MnBmm0T6/7f666c8adda6c568b8697c4624f495c4.jpg" },
+        { name: "ActRaiser", base: "https://cdn.jsdelivr.net/gh/DanexusGit/Retro-Games@master/OUT-ActRaiser%20(USA)%20(PT-BR)/", file: "ActRaiser (USA) (PT-BR).sfc", thumb: "https://i.postimg.cc/TL5WcC7X/Actraiser-JPbox.webp" },
+        { name: "ActRaiser 2", base: "https://cdn.jsdelivr.net/gh/DanexusGit/Retro-Games@master/OUT-ActRaiser%202%20(USA)%20(PT-BR)/", file: "ActRaiser 2 (USA) (PT-BR).smc", thumb: "https://i.postimg.cc/SY7RZ5c9/download.jpg" },
+        { name: "Real Monsters", base: "https://cdn.jsdelivr.net/gh/DanexusGit/Retro-Games@master/OUT-Aaahh!!!%20Real%20Monsters%20(USA)%20(PT-BR)/", file: "Aaahh!!! Real Monsters (USA) (PT-BR).smc", thumb: "https://i.postimg.cc/CZYvXfyn/images-(1).jpg" },
+        { name: "3 Ninjas Kick Back", base: "https://cdn.jsdelivr.net/gh/DanexusGit/Retro-Games@master/OUT-3%20Ninjas%20Kick%20Back%20(USA)%20(PT-BR)/", file: "3 Ninjas Kick Back (USA) (PT-BR).smc", thumb: "https://i.postimg.cc/gn2LSzBY/images-(2).jpg" },
+        { name: "The 7th Saga", base: "https://cdn.jsdelivr.net/gh/DanexusGit/Retro-Games@master/OUT-7th%20Saga,%20The%20(USA)%20(PT-BR)/", file: "7th Saga, The (USA) (PT-BR).smc", thumb: "https://i.postimg.cc/RWnFyN1z/images-(3).jpg" },
+        { name: "Addams Family", base: "https://cdn.jsdelivr.net/gh/DanexusGit/Retro-Games@master/OUT-Addams%20Family,%20The%20-%20Pugsley's%20Scavenger%20Hunt%20(USA)%20(PT-BR)/", file: "Addams Family, The - Pugsley's Scavenger Hunt (USA) (PT-BR).sfc", thumb: "https://i.postimg.cc/YhrY5f0J/adamssnes-1671742573088.jpg" },
+        { name: "Aerobiz", base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-Aerobiz%20(USA)%20(PT-BR)/", file: "Aerobiz (USA) (PT-BR).sfc", thumb: "https://i.postimg.cc/cvffns9Y/Aerobiz-Coverart.png" },
+        { name: "Choplifter 3", base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-Choplifter%203/", file: "Choplifter 3.smc", thumb: "https://i.postimg.cc/wtfMtZpL/choplifter3-1681171626459.jpg" },
+        { name: "Dr. Franken", base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-Adventures%20of%20Dr/", file: "Adventures of Dr. Franken, The (USA) (PT-BR).smc", thumb: "https://i.postimg.cc/4KbvrJpC/Adventures-of-Dr-Franken-29-29.webp" }
+    ];
+
+    const grid = document.getElementById('grid');
+
+    games.forEach((game) => {
+        const card = document.createElement('div');
+        card.className = 'game-card';
+        card.onclick = () => launchGame(game);
+        card.innerHTML = `<img src="${game.thumb}" alt="${game.name}"><div class="info">${game.name}</div>`;
+        grid.appendChild(card);
+    });
+
+    function launchGame(game) {
+        const menu = document.getElementById('main-menu');
+        const gameMode = document.getElementById('game-mode');
+        const iframe = document.getElementById('game-view');
+        document.getElementById('game-title-display').innerText = game.name;
+
+        const emuHtml = `
+            <html><body style="margin:0; background:#000;">
+                <div id="game" style="width:100vw; height:100vh;"></div>
+                <script>
+                    EJS_player = "#game"; EJS_core = "snes"; EJS_gameName = "${game.name}";
+                    EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/";
+                    EJS_gameUrl = "${game.base}${game.file}";
+                <\/script>
+                <script src="https://cdn.emulatorjs.org/stable/data/loader.js"><\/script>
+            </body></html>
+        `;
+
+        const blob = new Blob([emuHtml], { type: 'text/html' });
+        iframe.src = URL.createObjectURL(blob);
+        menu.style.display = 'none';
+        gameMode.style.display = 'flex';
+    }
+
+    function returnToMenu() {
+        document.getElementById('game-view').src = ''; 
+        document.getElementById('game-mode').style.display = 'none';
+        document.getElementById('main-menu').style.display = 'block';
+    }
+</script>
+</body>
+</html>
