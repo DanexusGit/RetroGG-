@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ULTRA ARCADE HUB - V3</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Syne:wght@800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00d2ff;
+            --bg: #0b0915;
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            margin: 0; background: var(--bg); color: white;
+            font-family: 'Inter', sans-serif; height: 100vh;
+            display: flex; overflow: hidden;
+        }
+
+        .sidebar {
+            width: 260px; background: rgba(0, 0, 0, 0.95);
+            display: flex; flex-direction: column; padding: 30px 20px;
+            border-right: 1px solid var(--glass-border);
+            backdrop-filter: blur(20px); z-index: 100;
+        }
+
+        .logo-area {
+            font-family: 'Syne', sans-serif; font-size: 1.6rem;
+            margin-bottom: 40px; color: var(--primary);
+            text-transform: uppercase; letter-spacing: 2px; text-align: center;
+        }
+
+        .nav-group { display: flex; flex-direction: column; gap: 8px; flex-grow: 1; overflow-y: auto; }
+
+        .cat-btn {
+            background: transparent; border: none; color: rgba(255,255,255,0.5);
+            padding: 14px; border-radius: 12px; cursor: pointer;
+            text-align: left; font-weight: 700; transition: 0.3s;
+            text-transform: uppercase; font-size: 0.75rem;
+        }
+
+        .cat-btn.active, .cat-btn:hover { background: var(--glass); color: white; }
+        .cat-btn.active { border-left: 4px solid var(--primary); background: rgba(0, 210, 255, 0.1); }
+
+        .main-content { flex-grow: 1; position: relative; overflow-y: auto; background: radial-gradient(circle at top right, #16122a, #0b0915); }
+        .header-title { padding: 40px 40px 10px; font-family: 'Syne', sans-serif; font-size: 2.8rem; text-transform: uppercase; }
+        .container { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 25px; padding: 40px; }
+
+        .game-card {
+            background: var(--glass); border-radius: 16px; overflow: hidden;
+            border: 1px solid var(--glass-border); transition: 0.4s; cursor: pointer;
+            position: relative; aspect-ratio: 3/4;
+        }
+
+        .game-card:hover { transform: translateY(-10px) scale(1.03); border-color: var(--primary); box-shadow: 0 15px 35px rgba(0,0,0,0.6); }
+        .game-card img { width: 100%; height: 100%; object-fit: cover; }
+        .game-overlay { position: absolute; bottom: 0; width: 100%; background: linear-gradient(transparent, rgba(0,0,0,0.95)); padding: 20px 10px 10px; text-align: center; font-size: 0.75rem; font-weight: 800; }
+
+        #game-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9999; }
+        #close-btn { position: absolute; top: 20px; right: 20px; background: #ff416c; color: white; border: none; padding: 12px 25px; border-radius: 30px; cursor: pointer; font-weight: 800; z-index: 10000; }
+        iframe { width: 100%; height: 100%; border: none; }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="logo-area">ULTRA HUB</div>
+    <div class="nav-group">
+        <button class="cat-btn active" onclick="renderGames('Destaques', this)">⭐ Destaques</button>
+        <button class="cat-btn" onclick="renderGames('Super Nintendo', this)">Super Nintendo (28)</button>
+        <button class="cat-btn" onclick="renderGames('Nintendo', this)">Nintendo NES (18)</button>
+        <button class="cat-btn" onclick="renderGames('Nintendo 64', this)">Nintendo 64 (13)</button>
+    </div>
+</div>
+
+<div class="main-content">
+    <h1 class="header-title" id="current-cat">Destaques</h1>
+    <div class="container" id="grid"></div>
+</div>
+
+<div id="game-screen">
+    <button id="close-btn" onclick="closeGame()">SAIR DO JOGO</button>
+    <iframe id="game-view"></iframe>
+</div>
+
+<script>
+    const games = [
+        // === NINTENDO 64 (13 JOGOS) ===
+        { name: "Super Mario 64", system: "Nintendo 64", core: "n64", featured: true, base: "https://cdn.jsdelivr.net/gh/DanexusGit/n644@master/OUT-Super%20Mario%2064/", file: "Super Mario 64.z64", thumb: "https://www.gamesdatabase.org/Media/SYSTEM/Nintendo_64/Box/BIG/Super_Mario_64_-_1996_-_Nintendo.jpg" },
+        { name: "Star Fox 64", system: "Nintendo 64", core: "n64", featured: true, base: "https://cdn.jsdelivr.net/gh/DanexusGit/n644@master/OUT-Star%20Fox%2064/", file: "Star Fox 64.z64", thumb: "https://www.gamesdatabase.org/Media/SYSTEM/Nintendo_64/Box/BIG/Star_Fox_64_-_1997_-_Nintendo.jpg" },
+        { name: "Space Station Silicon Valley", system: "Nintendo 64", core: "n64", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/n644@master/OUT-Space%20Station%20Silicon%20Valley/", file: "Space Station Silicon Valley.n64", thumb: "https://www.gamesdatabase.org/Media/SYSTEM/Nintendo_64/Box/BIG/Space_Station_Silicon_Valley_-_1998_-_Take-Two_Interactive.jpg" },
+        { name: "007 GoldenEye", system: "Nintendo 64", core: "n64", featured: true, base: "https://cdn.jsdelivr.net/gh/DanexusGit/n64@master/OUT-007%20GoldenEye/", file: "007 GoldenEye.z64", thumb: "https://www.gamesdatabase.org/Media/SYSTEM/Nintendo_64/Box/BIG/007-_GoldenEye_-_1997_-_Nintendo.jpg" },
+        { name: "Mario Kart 64", system: "Nintendo 64", core: "n64", featured: true, base: "https://cdn.jsdelivr.net/gh/DanexusGit/n643@master/OUT-Mario%20Kart%2064/", file: "Mario Kart 64.v64", thumb: "https://www.gamesdatabase.org/Media/SYSTEM/Nintendo_64/Box/BIG/Mario_Kart_64_-_1997_-_Nintendo.jpg" },
+        { name: "Banjo-Kazooie", system: "Nintendo 64", core: "n64", featured: true, base: "https://cdn.jsdelivr.net/gh/DanexusGit/n64@master/OUT-Banjo-Kazooie/", file: "Banjo-Kazooie.n64", thumb: "https://www.gamesdatabase.org/Media/SYSTEM/Nintendo_64/Box/BIG/Banjo-Kazooie_-_1998_-_Nintendo.jpg" },
+        { name: "Diddy Kong Racing", system: "Nintendo 64", core: "n64", featured: true, base: "https://cdn.jsdelivr.net/gh/DanexusGit/n642@master/OUT-Diddy%20Kong%20Racing/", file: "Diddy Kong Racing.z64", thumb: "https://www.gamesdatabase.org/Media/SYSTEM/Nintendo_64/Box/BIG/Diddy_Kong_Racing_-_1997_-_Nintendo.jpg" },
+        { name: "Doom 64", system: "Nintendo 64", core: "n64", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/n642@master/OUT-Doom%2064/", file: "Doom 64.z64", thumb: "https://www.gamesdatabase.org/Media/SYSTEM/Nintendo_64/Box/BIG/Doom_64_-_1997_-_Midway_Games.jpg" },
+        { name: "Cruis'n Exotica", system: "Nintendo 64", core: "n64", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/n64@master/OUT-Cruis'n%20Exotica/", file: "Cruis'n Exotica.z64", thumb: "https://www.gamesdatabase.org/Media/SYSTEM/Nintendo_64/Box/BIG/Cruis-n_Exotica_-_2000_-_Midway_Games.jpg" },
+        { name: "Automobili Lamborghini", system: "Nintendo 64", core: "n64", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/n64@master/OUT-Automobili%20Lamborghini/", file: "Automobili Lamborghini.z64", thumb: "https://www.gamesdatabase.org/Media/SYSTEM/Nintendo_64/Box/BIG/Automobili_Lamborghini_-_1997_-_Titus_Software.jpg" },
+        { name: "Donald Duck Goin' Quackers", system: "Nintendo 64", core: "n64", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/n642@master/OUT-Donald%20Duck%20Goin'%20Quackers/", file: "Donald Duck Goin' Quackers.z64", thumb: "https://www.gamesdatabase.org/Media/SYSTEM/Nintendo_64/Box/BIG/Donald_Duck-_Goin-_Quackers_-_2000_-_Ubisoft.jpg" },
+        { name: "FIFA 99", system: "Nintendo 64", core: "n64", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/n643@master/OUT-FIFA%2099/", file: "FIFA 99.n64", thumb: "https://www.gamesdatabase.org/Media/SYSTEM/Nintendo_64/Box/BIG/FIFA_99_-_1998_-_Electronic_Arts.jpg" },
+        { name: "South Park", system: "Nintendo 64", core: "n64", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/n643@master/OUT-South%20Park/", file: "South Park.z64", thumb: "https://www.gamesdatabase.org/Media/SYSTEM/Nintendo_64/Box/BIG/South_Park_-_1998_-_Acclaim_Entertainment.jpg" },
+
+        // === SUPER NINTENDO (28 JOGOS - CAPAS ORIGINAIS) ===
+        { name: "Super Mario World", system: "Super Nintendo", core: "snes", featured: true, base: "https://cdn.jsdelivr.net/gh/DanexusGit/Snes/", file: "Super Mario World (U) [!].smc", thumb: "https://static.miraheze.org/loathsomecharacterswiki/thumb/8/82/Super_Mario_World_Coverart.png/300px-Super_Mario_World_Coverart.png" },
+        { name: "Donkey Kong Country 1", system: "Super Nintendo", core: "snes", featured: true, base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-Donkey%20Kong%20Country/", file: "Donkey Kong Country.smc", thumb: "https://i.postimg.cc/0rJjQVHR/donkey-kong-country-1-button-v1-1560099410346.jpg" },
+        { name: "Donkey Kong Country 2", system: "Super Nintendo", core: "snes", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-Donkey%20Kong%20Country%202/", file: "Donkey Kong Country 2.smc", thumb: "https://i.postimg.cc/mPTgmBZ9/download-(1).jpg" },
+        { name: "Donkey Kong Country 3", system: "Super Nintendo", core: "snes", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-Donkey%20Kong%20Country%203/", file: "Donkey Kong Country 3.smc", thumb: "https://i.postimg.cc/K3ZmJ5FW/images-(6).jpg" },
+        { name: "FIFA '98", system: "Super Nintendo", core: "snes", featured: true, base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-FIFA_98/", file: "FIFA_98.SMC", thumb: "https://i.postimg.cc/062dRTnm/images-(8).jpg" },
+        { name: "FIFA '97", system: "Super Nintendo", core: "snes", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-FIFA_97/", file: "FIFA_97.smc", thumb: "https://i.postimg.cc/WF198DCm/images-(7).jpg" },
+        { name: "FIFA Soccer '96", system: "Super Nintendo", core: "snes", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-FIFA%20Soccer%20'96%20(USA)%20(En,Fr,De,Es,It,Sv)/", file: "FIFA Soccer '96 (USA) (En,Fr,De,Es,It,Sv).SMC", thumb: "https://i.postimg.cc/mhF3sNYC/logo.gif" },
+        { name: "Aladdin", system: "Super Nintendo", core: "snes", featured: true, base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-Aladdin%20(USA)/", file: "Aladdin (USA).smc", thumb: "https://i.postimg.cc/68S5tRL0/images-(2).jpg" },
+        { name: "Contra 3", system: "Super Nintendo", core: "snes", featured: true, base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-Contra%203%20-%20The%20Alien%20Wars/", file: "Contra 3 - The Alien Wars.smc", thumb: "https://i.postimg.cc/tnbK9RM1/download.jpg" },
+        { name: "Final Fight 3", system: "Super Nintendo", core: "snes", featured: true, base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-Final%20Fight%203/", file: "Final Fight 3.smc", thumb: "https://i.postimg.cc/8fPVhPmg/finalfight3-1646898523592.jpg" },
+        { name: "Final Fight 2", system: "Super Nintendo", core: "snes", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-Final%20Fight%202%20(BR)/", file: "Final Fight 2 (BR).smc", thumb: "https://i.postimg.cc/64s9nN1n/download-(2).jpg" },
+        { name: "Aero Fighters", system: "Super Nintendo", core: "snes", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-Aero%20Fighters%20(USA)%20(PT-BR)/", file: "Aero Fighters (USA) (PT-BR).sfc", thumb: "https://i.postimg.cc/TLBrbp65/images.jpg" },
+        { name: "Alien 3", system: "Super Nintendo", core: "snes", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-Alien%203%20(USA)%20(PT-BR)/", file: "Alien 3 (USA) (PT-BR).smc", thumb: "https://i.postimg.cc/XG6jybzm/images-(3).jpg" },
+        { name: "Alien vs. Predator", system: "Super Nintendo", core: "snes", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-Alien%20vs/", file: "Alien vs. Predator (USA) (PT-BR).smc", thumb: "https://i.postimg.cc/mz3bYnxm/images-(4).jpg" },
+        { name: "Bugs Bunny", system: "Super Nintendo", core: "snes", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-Bugs%20Bunny/", file: "Bugs Bunny.smc", thumb: "https://i.postimg.cc/ygC1SHGR/images-(5).jpg" },
+        { name: "Air Cavalry", system: "Super Nintendo", core: "snes", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-Air%20Cavalry/", file: "Air Cavalry.sfc", thumb: "https://i.postimg.cc/VJTLmMBL/images-(1).jpg" },
+        { name: "Jurassic Park 1", system: "Super Nintendo", core: "snes", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-Jurassic%20Park/", file: "Jurassic Park 1.smc", thumb: "https://i.postimg.cc/G4PspXtP/artworks-000153878158-kmh7bb-t500x500.jpg" },
+        { name: "F-Zero 1", system: "Super Nintendo", core: "snes", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-F-Zero%201/", file: "F-Zero 1.smc", thumb: "https://i.postimg.cc/N2rKv4Zv/f-zero.jpg" },
+        { name: "F-Zero 2 Grand Prix", system: "Super Nintendo", core: "snes", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-F-Zero%202%20-%20Grand%20Prix/", file: "F-Zero 2 - Grand Prix.smc", thumb: "https://i.postimg.cc/MnBmm0T6/fzero2.jpg" },
+        { name: "ActRaiser", system: "Super Nintendo", core: "snes", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/Retro-Games@master/OUT-ActRaiser%20(USA)%20(PT-BR)/", file: "ActRaiser (USA) (PT-BR).sfc", thumb: "https://i.postimg.cc/TL5WcC7X/Actraiser.jpg" },
+        { name: "ActRaiser 2", system: "Super Nintendo", core: "snes", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/Retro-Games@master/OUT-ActRaiser%202%20(USA)%20(PT-BR)/", file: "ActRaiser 2 (USA) (PT-BR).smc", thumb: "https://i.postimg.cc/SY7RZ5c9/actraiser2.jpg" },
+        { name: "Real Monsters", system: "Super Nintendo", core: "snes", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/Retro-Games@master/OUT-Aaahh!!!%20Real%20Monsters%20(USA)%20(PT-BR)/", file: "Aaahh!!! Real Monsters (USA) (PT-BR).smc", thumb: "https://i.postimg.cc/CZYvXfyn/monsters.jpg" },
+        { name: "3 Ninjas Kick Back", system: "Super Nintendo", core: "snes", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/Retro-Games@master/OUT-3%20Ninjas%20Kick%20Back%20(USA)%20(PT-BR)/", file: "3 Ninjas Kick Back (USA) (PT-BR).smc", thumb: "https://i.postimg.cc/gn2LSzBY/3ninjas.jpg" },
+        { name: "The 7th Saga", system: "Super Nintendo", core: "snes", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/Retro-Games@master/OUT-7th%20Saga,%20The%20(USA)%20(PT-BR)/", file: "7th Saga, The (USA) (PT-BR).smc", thumb: "https://i.postimg.cc/RWnFyN1z/7thsaga.jpg" },
+        { name: "Addams Family", system: "Super Nintendo", core: "snes", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/Retro-Games@master/OUT-Addams%20Family,%20The%20-%20Pugsley's%20Scavenger%20Hunt%20(USA)%20(PT-BR)/", file: "Addams Family, The - Pugsley's Scavenger Hunt (USA) (PT-BR).sfc", thumb: "https://i.postimg.cc/YhrY5f0J/addams.jpg" },
+        { name: "Aerobiz", system: "Super Nintendo", core: "snes", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-Aerobiz%20(USA)%20(PT-BR)/", file: "Aerobiz (USA) (PT-BR).sfc", thumb: "https://i.postimg.cc/cvffns9Y/Aerobiz.png" },
+        { name: "Choplifter 3", system: "Super Nintendo", core: "snes", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-Choplifter%203/", file: "Choplifter 3.smc", thumb: "https://i.postimg.cc/wtfMtZpL/choplifter3.jpg" },
+        { name: "Dr. Franken", system: "Super Nintendo", core: "snes", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/reretrotro@master/OUT-Adventures%20of%20Dr/", file: "Adventures of Dr. Franken, The (USA) (PT-BR).smc", thumb: "https://i.postimg.cc/4KbvrJpC/drfranken.webp" },
+
+        // === NINTENDO NES (18 JOGOS) ===
+        { name: "1200-in-1", system: "Nintendo", core: "nes", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/nes@master/OUT-1200-in-1%20(J)%20[p1]/", file: "1200-in-1 (J) [p1].nes", thumb: "https://i.postimg.cc/8P6L8TzW/1200.jpg" },
+        { name: "Batman", system: "Nintendo", core: "nes", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/NintendoClassic@master/OUT-Batman%20-%20The%20Video%20Game%20(USA)/", file: "Batman - The Video Game (USA).nes", thumb: "https://m.media-amazon.com/images/I/51p8F-H3P3L.jpg" },
+        { name: "Contra", system: "Nintendo", core: "nes", featured: true, base: "https://cdn.jsdelivr.net/gh/DanexusGit/NintendoClassic@master/OUT-Contra%20(USA)/", file: "Contra (USA).nes", thumb: "https://i.postimg.cc/Z9wPbJKV/il-570x-N-5335913912-4hu7.webp" },
+        { name: "Contra Force", system: "Nintendo", core: "nes", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/NintendoClassic@master/OUT-Contra%20Force%20(USA)/", file: "Contra Force (USA).nes", thumb: "https://www.retrogaming-passion.com/wp-content/uploads/2021/08/Contra-Force.jpg" },
+        { name: "Dr. Mario", system: "Nintendo", core: "nes", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/NintendoClassic@master/OUT-Dr/", file: "Dr. Mario (Japan, USA) (Rev 1).nes", thumb: "https://upload.wikimedia.org/wikipedia/en/4/4b/Dr_Mario_NES_box_art.jpg" },
+        { name: "Kirby's Adventure", system: "Nintendo", core: "nes", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/NintendoClassic@master/OUT-Kirby's%20Adventure%20(USA)%20(Rev%201)/", file: "Kirby's Adventure (USA) (Rev 1).nes", thumb: "https://upload.wikimedia.org/wikipedia/en/e/e0/Kirby%27s_Adventure_Cover.jpg" },
+        { name: "The Legend of Zelda", system: "Nintendo", core: "nes", featured: true, base: "https://cdn.jsdelivr.net/gh/DanexusGit/NintendoClassic@master/OUT-Legend%20of%20Zelda,%20The%20(USA)%20(Rev%201)/", file: "Legend of Zelda, The (USA) (Rev 1).nes", thumb: "https://i.postimg.cc/xXJqJYR7/images-(1).jpg" },
+        { name: "Mario Bros", system: "Nintendo", core: "nes", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/NintendoClassic@master/OUT-Mario%20Bros/", file: "Mario Bros. (World).nes", thumb: "https://i.postimg.cc/Vv8W5vD8/mariobros-nes.jpg" },
+        { name: "Mega Man 2", system: "Nintendo", core: "nes", featured: true, base: "https://cdn.jsdelivr.net/gh/DanexusGit/NintendoClassic@master/OUT-Mega%20Man%202%20(USA)/", file: "Mega Man 2 (USA).nes", thumb: "https://upload.wikimedia.org/wikipedia/en/0/00/Mega_Man_2_box.jpg" },
+        { name: "Metroid", system: "Nintendo", core: "nes", featured: true, base: "https://cdn.jsdelivr.net/gh/DanexusGit/NintendoClassic@master/OUT-Metroid%20(USA)/", file: "Metroid (USA).nes", thumb: "https://upload.wikimedia.org/wikipedia/en/f/fa/Metroid_boxart.jpg" },
+        { name: "Punch-out!", system: "Nintendo", core: "nes", featured: true, base: "https://cdn.jsdelivr.net/gh/DanexusGit/NintendoClassic@master/OUT-Mike%20Tyson's%20Punch-Out!!%20(Japan,%20USA)%20(Rev%201)/", file: "Mike Tyson's Punch-Out!! (Japan, USA) (Rev 1).nes", thumb: "https://upload.wikimedia.org/wikipedia/en/3/34/Punch-Out%21%21_%28NES%29_box_art.jpg" },
+        { name: "Pac-Man", system: "Nintendo", core: "nes", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/NintendoClassic@master/OUT-Pac-Man%20(USA)%20(Namco)/", file: "Pac-Man (USA) (Namco).nes", thumb: "https://upload.wikimedia.org/wikipedia/en/0/03/PacManNESBox.jpg" },
+        { name: "SMB + Duck Hunt", system: "Nintendo", core: "nes", featured: true, base: "https://cdn.jsdelivr.net/gh/DanexusGit/NintendoClassic@master/OUT-Super%20Mario%20Bros/", file: "Super Mario Bros. + Duck Hunt (USA).nes", thumb: "https://i.imgur.com/8YlQ8j4.jpg" },
+        { name: "Super Mario Bros 2", system: "Nintendo", core: "nes", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/NintendoClassic@master/OUT-Super%20Mario%20Bros%20(1)/", file: "Super Mario Bros. 2 (USA) (Rev 1).nes", thumb: "https://i.postimg.cc/V5pR0sBN/co7yq7.jpg" },
+        { name: "Super Mario Bros 3", system: "Nintendo", core: "nes", featured: true, base: "https://cdn.jsdelivr.net/gh/DanexusGit/NintendoClassic@master/OUT-Super%20Mario%20Bros%20(2)/", file: "Super Mario Bros. 3 (USA) (Rev 1).nes", thumb: "https://upload.wikimedia.org/wikipedia/en/a/a5/Super_Mario_Bros._3_coverart.png" },
+        { name: "TMNT", system: "Nintendo", core: "nes", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/NintendoClassic@master/OUT-Teenage%20Mutant%20Ninja%20Turtles%20(USA)/", file: "Teenage Mutant Ninja Turtles (USA).nes", thumb: "https://upload.wikimedia.org/wikipedia/en/6/69/TMNTNESCover.jpg" },
+        { name: "Tetris", system: "Nintendo", core: "nes", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/NintendoClassic@master/OUT-Tetris%20(USA)%20(Tengen)%20(Unl)/", file: "Tetris (USA) (Tengen) (Unl).nes", thumb: "https://upload.wikimedia.org/wikipedia/en/8/8d/NES_Tetris_Box_Front.jpg" },
+        { name: "Zelda II", system: "Nintendo", core: "nes", featured: false, base: "https://cdn.jsdelivr.net/gh/DanexusGit/NintendoClassic@master/OUT-Zelda%20II%20-%20The%20Adventure%20of%20Link%20(USA)/", file: "Zelda II - The Adventure of Link (USA).nes", thumb: "https://upload.wikimedia.org/wikipedia/en/a/aa/Zelda_II_The_Adventure_of_Link_box.jpg" }
+    ];
+
+    function renderGames(filter, btn) {
+        const grid = document.getElementById('grid');
+        const title = document.getElementById('current-cat');
+        grid.innerHTML = '';
+        
+        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        if(filter === 'Super Nintendo') title.innerText = 'Super Nintendo (28)';
+        else if(filter === 'Nintendo') title.innerText = 'Nintendo NES (18)';
+        else if(filter === 'Nintendo 64') title.innerText = 'Nintendo 64 (13)';
+        else title.innerText = filter;
+
+        const filtered = games.filter(g => filter === 'Destaques' ? g.featured : g.system === filter);
+        
+        filtered.forEach(game => {
+            const card = document.createElement('div');
+            card.className = 'game-card';
+            card.onclick = () => launchGame(game);
+            card.innerHTML = `
+                <img src="${game.thumb}" loading="lazy" onerror="this.src='https://via.placeholder.com/300x400/16122a/00d2ff?text=${encodeURIComponent(game.name)}'">
+                <div class="game-overlay">${game.name}</div>
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    function launchGame(game) {
+        const screen = document.getElementById('game-screen');
+        const iframe = document.getElementById('game-view');
+        
+        const emuHtml = `
+            <html><body style="margin:0; background:#000; overflow:hidden;">
+                <div id="game" style="width:100vw; height:100vh;"></div>
+                <script>
+                    EJS_player = "#game"; EJS_core = "${game.core}"; 
+                    EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/";
+                    EJS_gameUrl = "${game.base}${game.file}";
+                    EJS_startOnLoaded = true;
+                <\/script>
+                <script src="https://cdn.emulatorjs.org/stable/data/loader.js"><\/script>
+            </body></html>
+        `;
+        const blob = new Blob([emuHtml], { type: 'text/html' });
+        iframe.src = URL.createObjectURL(blob);
+        screen.style.display = 'block';
+    }
+
+    function closeGame() {
+        document.getElementById('game-view').src = '';
+        document.getElementById('game-screen').style.display = 'none';
+    }
+
+    renderGames('Destaques', document.querySelector('.cat-btn'));
+</script>
+</body>
+</html>
